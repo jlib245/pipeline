@@ -10,7 +10,7 @@ from pydantic import BaseModel
 app = FastAPI(title="SpamCheck Web")
 # 정적 HTML 서빙: static 안에 파일들을 URL로 접근가능하게 해라
 # {URL}/static/…… 으로 접근 가능하게
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
 # 메인 페이지 (/) 처리 : “/”로 접속 시 처리할 작업
 @app.get("/", response_class=HTMLResponse)
 def home():
