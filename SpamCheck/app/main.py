@@ -19,14 +19,37 @@ def home():
 
 class ClassifyRequest(BaseModel):
     text:str
+
+import logging
+# 1) 로그 포맷: 시간 + 레벨 + 메시지
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | "
+        "%(filename)s:%(lineno)d (%(funcName)s) | "
+        "%(message)s"
+)
+logger = logging.getLogger("spamcheck")
 # classify 요청이 올 때 할 일
 # async: 비동기 처리 (서버가 요청 기다리는 동안 다른 요청도 처리 가능
 @app.post("/classify")
-async def classify(payload:ClassifyRequest):
+async def classify(payload: ClassifyRequest):
     text = payload.text
-    if text == "crash" :
-        raise RuntimeError("의도적 장애 추가")
-    label, score = check_spam(text)
+    # (A) 요청 들어온 것 자체를 기록: 언제(로그시간) / 무엇(endpoint) / 어떤 입력
+    logger.info(f"CALL /classify | text='{text}' | len={len(text)}")
+    try:
+        if text =="crash":
+            raise RuntimeError("의도적 장애 추가")
+        label, score = check_spam(text)
+        # (B) 정상 처리 결과도 짧게 기록
+        logger.info(f"OK /classify | label={label} score={score}")
+    except Exception as e:
+        # (C) 디버깅 핵심: 에러 종류/메시지 + 스택트레이스(파일/라인 포함)
+        # logger.exception은 현재 예외의 traceback을 자동으로 찍어줍니다.
+        logger.exception(
+        f"FAIL /classify | text='{text}' | error={type(e).__name__}: {e}"
+        )
+        # (D) 사용자 응답은 심플하게
+        return {"label": "Internal Server Error", "score": -1}
     return {
     "label": label, "score": score
     }
