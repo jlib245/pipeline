@@ -4,6 +4,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from app.spam import check_spam
 from pydantic import BaseModel
+from app.issue import *
+import traceback
 
 # FastAPI 기반 웹 앱 생성
 # /docs (Swagger UI)에 표기되는 이름
@@ -37,8 +39,8 @@ async def classify(payload: ClassifyRequest):
     # (A) 요청 들어온 것 자체를 기록: 언제(로그시간) / 무엇(endpoint) / 어떤 입력
     logger.info(f"CALL /classify | text='{text}' | len={len(text)}")
     try:
-        if text =="crash":
-            raise RuntimeError("의도적 장애 추가")
+        #if text =="crash":
+        #    raise RuntimeError("의도적 장애 추가")
         label, score = check_spam(text)
         # (B) 정상 처리 결과도 짧게 기록
         logger.info(f"OK /classify | label={label} score={score}")
@@ -48,11 +50,25 @@ async def classify(payload: ClassifyRequest):
         logger.exception(
         f"FAIL /classify | text='{text}' | error={type(e).__name__}: {e}"
         )
+
+        # (D) GitHub Issue 자동 생성
+        tb = traceback.format_exc()
+        title = f"[Prod Error] /classify failed: {type(e).__name__}"
+        body = (
+        f"## Summary\n"
+        f"- endpoint: /classify\n"
+        f"- input(text, short): `{text}`\n"
+        f"- input length: {len(text)}\n\n"
+        f"## Exception\n"
+        f"- type: {type(e).__name__}\n"
+        f"- message: {str(e)}\n\n"
+        f"## Traceback (line info)\n"
+        f"```text\n{tb}\n```"
+        )
+        create_github_issue(title, body, logger)
+
         # (D) 사용자 응답은 심플하게
         return {"label": "Internal Server Error", "score": -1}
-    return {
-    "label": label, "score": score
-    }
 # 실행은 운영 환경의 책임으로 남기기 위해 만들지 X
 # http://127.0.0.1:8000 접속
 # if __name__ == "__main__":
