@@ -69,6 +69,9 @@ async def classify(payload: ClassifyRequest):
 
         # (D) 사용자 응답은 심플하게
         return {"label": "Internal Server Error", "score": -1}
+    return {
+    "label": label, "score": score
+    }
 # 실행은 운영 환경의 책임으로 남기기 위해 만들지 X
 # http://127.0.0.1:8000 접속
 # if __name__ == "__main__":
